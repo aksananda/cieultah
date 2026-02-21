@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>misi nangkep kado!</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            font-family: 'Fredoka One', cursive; overflow: hidden;
+            touch-action: manipulation; user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #game-container {
+            position: relative; width: 100%; max-width: 420px; height: 100%;
+            margin: 0 auto; background: url('https://www.transparenttextures.com/patterns/cubes.png'), linear-gradient(to bottom, #87CEEB, #e0f6ff);
+            overflow: hidden; box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            border-left: 4px solid #fff; border-right: 4px solid #fff;
+        }
+
+        .screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; box-sizing: border-box; background: rgba(0,0,0,0.4);
+            opacity: 0; pointer-events: none; transition: opacity 0.6s ease-in-out;
+            z-index: 100;
+        }
+        .screen.active { opacity: 1; pointer-events: auto; }
+
+        #screen-start { background: #1e3c72; cursor: pointer; z-index: 999; color: white; }
+        .pulse-text { animation: pulse 1.5s infinite; font-size: 18px; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+        @keyframes floatMascot { 0% { transform: translateY(0px) rotate(-2deg); } 50% { transform: translateY(-15px) rotate(2deg); } 100% { transform: translateY(0px) rotate(-2deg); } }
+
+        .img-mascot { pointer-events: none; max-width: 180px; margin-bottom: 20px; animation: floatMascot 3s ease-in-out infinite; filter: drop-shadow(0px 10px 10px rgba(0,0,0,0.3)); }
+        .img-mascot-gede { pointer-events: none; max-width: 230px; margin-bottom: 20px; animation: floatMascot 3s ease-in-out infinite; filter: drop-shadow(0px 10px 10px rgba(0,0,0,0.5)); }
+
+        .speech-bubble {
+            position: relative; background: #fff; border-radius: 20px; padding: 20px; border: 4px solid #2c3e50; font-size: 15px;
+            width: 85%; color: #2c3e50; box-shadow: 0px 8px 0px rgba(0,0,0,0.1); margin-bottom: 40px; line-height: 1.4; min-height: 60px;
+            display: flex; align-items: center; justify-content: center; transform: scale(0); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .speech-bubble.show { transform: scale(1); }
+        .speech-bubble:after { content: ''; position: absolute; bottom: -20px; left: 50%; width: 0; height: 0; border: 20px solid transparent; border-top-color: #2c3e50; border-bottom: 0; margin-left: -20px; }
+        
+        /* class biar buntut bubble ilang buat tumpuk 2 textbox */
+        .speech-bubble.no-tail:after { display: none; }
+
+        .choice-container { display: flex; flex-direction: column; gap: 12px; width: 85%; opacity: 0; pointer-events: none; transition: opacity 0.5s ease; z-index: 1000; position: relative; }
+        .choice-container.show { opacity: 1; pointer-events: auto; }
+        .btn { background: #ff6b6b; border: 3px solid #fff; padding: 15px; border-radius: 50px; color: white; font-family: inherit; font-size: 14px; cursor: pointer; box-shadow: 0px 6px 0px #c0392b; transition: transform 0.1s, box-shadow 0.1s; z-index: 1000;}
+        .btn:active { transform: translateY(6px); box-shadow: 0px 0px 0px #c0392b; }
+        .btn-alt { background: #4ecdc4; box-shadow: 0px 6px 0px #16a085; }
+        .btn-alt:active { box-shadow: 0px 0px 0px #16a085; }
+
+        /* ========= GAME MANJAT ========= */
+        #screen-climb { background: #2c3e50; overflow: hidden; display: none; z-index: 10; }
+        
+        #game-world { position: absolute; width: 100%; height: 5000px; bottom: 0; left: 0; transition: transform 0.2s ease-out; z-index: 1; }
+        .wall-bg { position: absolute; width: 100%; height: 100%; bottom: 0; left: 0; background: url('https://www.transparenttextures.com/patterns/brick-wall.png'), #34495e; }
+        .wall-edge { position: absolute; width: 20px; height: 100%; background: #1a252f; bottom: 0; z-index: 2; }
+        .wall-edge.left { left: 0; border-right: 5px solid #bdc3c7; }
+        .wall-edge.right { right: 0; border-left: 5px solid #bdc3c7; }
+
+        .platform { position: absolute; width: 75px; height: 15px; background: #95a5a6; border-top: 4px solid #ecf0f1; border-radius: 5px; box-shadow: 0 5px 0 #1a252f; z-index: 3; }
+        
+        #roof-platform {
+            position: absolute; width: 100%; height: 1000px; 
+            background: #475b6d; border-top: 15px solid #95a5a6; 
+            border-bottom: 10px solid #2c3e50; z-index: 3;
+            background-image: repeating-linear-gradient(90deg, transparent, transparent 20px, rgba(0,0,0,0.1) 20px, rgba(0,0,0,0.1) 40px);
+        }
+
+        #climb-player { 
+            position: absolute; width: 90px; height: 90px; bottom: 115px; 
+            background-image: url('cewe-berdiri.png'); background-size: contain; background-repeat: no-repeat; background-position: bottom center;
+            transition: left 0.2s ease-in-out, bottom 0.5s ease-in, transform 0.5s ease-in; z-index: 20; filter: drop-shadow(2px 2px 5px rgba(0,0,0,0.4));
+        }
+
+        @keyframes hopArc { 0% { margin-bottom: 0px; } 50% { margin-bottom: 40px; } 100% { margin-bottom: 0px; } }
+        .hopping { animation: hopArc 0.2s ease-out forwards; }
+
+        #world-belly { position: absolute; width: 85px; height: 85px; background-image: url('belly.png'); background-size: contain; background-repeat: no-repeat; background-position: bottom center; z-index: 10; display: none; filter: drop-shadow(2px 2px 5px rgba(0,0,0,0.4)); }
+        #world-mascot { position: absolute; width: 90px; height: 90px; background-image: url('boneka-smug.png'); background-size: contain; background-repeat: no-repeat; background-position: bottom center; z-index: 10; display: none; transition: bottom 1s ease-in, transform 1s ease-in; }
+
+        #climb-dialog { z-index: 999 !important; position:absolute; top: 100px; width: 80%; left: 0; right: 0; margin: 0 auto; display: none; } 
+
+        /* ========= FLAPPY BIRD ========= */
+        #screen-game { z-index: 10; position: absolute; width: 100%; height: 100%; display: none; } 
+        #player-bird { position: absolute; width: 85px; height: 85px; background-image: url('cewe-jetpack.png'); background-size: contain; background-repeat: no-repeat; background-position: center; top: 50%; left: 50px; z-index: 20; filter: drop-shadow(2px 2px 5px rgba(0,0,0,0.4)); transition: transform 0.1s; }
+        #target-mascot { position: absolute; width: 70px; height: 70px; right: 20px; top: 50%; background-image: url('boneka-terbang.png'); background-size: contain; background-repeat: no-repeat; background-position: center; z-index: 15; filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.4)); transition: top 0.6s ease-in-out, transform 0.3s; }
+        
+        #taunt-bubble { position: absolute; top: -35px; right: 10px; background: white; border: 2px solid #2c3e50; border-radius: 10px; padding: 5px 10px; font-size: 11px; color: #e74c3c; display: none; white-space: nowrap; box-shadow: 2px 2px 0px rgba(0,0,0,0.2); animation: popIn 0.2s ease-out; z-index: 9;}
+        #taunt-bubble:after { content: ''; position: absolute; top: 100%; right: 15px; border-width: 5px; border-style: solid; border-color: white transparent transparent transparent; }
+        
+        #fight-cloud { position: absolute; width: 140px; height: 140px; z-index: 30; background-image: url('asep-berantem.gif'); background-size: contain; background-repeat: no-repeat; background-position: center; display: none; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5)); animation: shake 0.5s infinite; }
+        
+        .pipe { position: absolute; width: 60px; background: linear-gradient(to right, #73bf2e, #8fe041, #73bf2e); border: 4px solid #2c3e50; border-radius: 5px; z-index: 11; }
+        .pipe-cap { position: absolute; width: 70px; height: 30px; left: -9px; background: linear-gradient(to right, #73bf2e, #8fe041, #73bf2e); border: 4px solid #2c3e50; border-radius: 5px; }
+        .pipe-top .pipe-cap { bottom: -4px; }
+        .pipe-bottom .pipe-cap { top: -4px; }
+        #score-display { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); font-size: 40px; color: white; text-shadow: 3px 3px 0 #2c3e50, -1px -1px 0 #2c3e50; z-index: 50; opacity: 0; transition: opacity 0.3s; }
+
+        /* ========= SCREENS & BOSS ========= */
+        #screen-gameover { z-index: 9999 !important; background: rgba(0,0,0,0.85); } 
+        #screen-boss { z-index: 9999 !important; }
+        #screen-ko { z-index: 9999 !important; }
+        
+        #boss-mascot { width: 220px; height: 220px; cursor: pointer; background-image: url('boneka-ngeledek.png'); background-size: contain; background-repeat: no-repeat; background-position: center; }
+        #health-bar-bg { width: 80%; height: 35px; background: #2c3e50; border: 4px solid #fff; border-radius: 20px; margin-bottom: 30px; overflow: hidden; position: relative; }
+        #health-bar { width: 100%; height: 100%; background: linear-gradient(to right, #ff416c, #ff4b2b); transition: width 0.1s linear; }
+        .health-text { position: absolute; width: 100%; top: 50%; left: 0; transform: translateY(-50%); color: white; font-size: 14px; letter-spacing: 2px; }
+        
+        #kado-item { pointer-events: none; width: 80px; height: 80px; background-image: url('kado.png'); background-size: contain; background-repeat: no-repeat; background-position: center; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="screen-start" class="screen active" onclick="initGame()">
+        <div class="pulse-text">Tap to Start</div>
+    </div>
+
+    <div id="screen-climb" class="screen" style="background: transparent;">
+        <div id="game-world">
+            <div class="wall-bg"></div>
+            <div class="wall-edge left"></div>
+            <div class="wall-edge right"></div>
+            <div id="platforms-container"></div>
+            <div id="roof-platform"></div>
+            <div id="world-belly"></div>
+            <div id="world-mascot"></div>
+        </div>
+        <div id="climb-player"></div>
+        <div class="speech-bubble" id="climb-dialog">
+            <span id="climb-text-span"></span>
+        </div>
+    </div>
+
+    <div id="screen-game">
+        <div id="score-display">0</div>
+        <div id="player-bird"></div>
+        <div id="target-mascot"><div id="taunt-bubble">wleee!</div></div>
+        <div id="fight-cloud"></div> 
+    </div>
+
+    <div id="screen-vn" class="screen">
+        <div class="speech-bubble" id="bubble-vn"><span id="vn-text"></span></div>
+        <img src="boneka-ngeledek.png" class="img-mascot" id="vn-mascot" style="opacity:0; transition: opacity 0.5s;">
+        <div id="kado-item" style="position: absolute; top: 65%; right: 15%; opacity: 0;"></div>
+        <div class="choice-container" id="vn-choices"></div>
+    </div>
+
+    <div id="screen-getready" class="screen" style="z-index: 9999;">
+        <div class="speech-bubble show" style="font-size: 24px; color: #e74c3c;">siap - siap!</div>
+        <p style="color: white; font-size: 12px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 10px;">TAP LAYAR BUAT TERBANG<br>KEJAR BONEKANYA!</p>
+    </div>
+
+    <div id="screen-gameover" class="screen">
+        <div class="speech-bubble show" id="bubble-over"><span id="over-text"></span></div>
+        <img src="boneka-smug.png" class="img-mascot-gede"> 
+        <button class="btn" onclick="retryGame()">masih berani coba lagi?</button>
+    </div>
+
+    <div id="screen-boss" class="screen" style="background: rgba(0,0,0,0.85);">
+        <div class="speech-bubble show" id="bubble-boss" style="border-color: #e74c3c; color: #e74c3c;"><span id="boss-text">aduh segala ketangkep, mau kamu apain juga gabakal aku balikin kadonya</span></div>
+        <div id="health-bar-bg"><div id="health-bar"></div><div class="health-text">HP BONEKA</div></div>
+        <div id="boss-mascot" onclick="hitBoss()"></div>
+        <div style="margin-top:25px; font-size:14px; color:#ffcc00; animation: pulse 1s infinite;">👇 tap untuk gebuk sipencuri kado 👊 👇</div>
+    </div>
+
+    <div id="screen-ko" class="screen" style="background: rgba(0,0,0,0.95);">
+        
+        <div class="speech-bubble show" id="bubble-ko-1" style="text-align: left; font-size: 14px; margin-bottom: 10px;">
+            <span id="ko-text-1">aduhhh ampunnn... badan bonyok semua... 🤕</span>
+        </div>
+        
+        <div class="speech-bubble" id="bubble-ko-2" style="text-align: left; font-size: 14px; margin-bottom: 20px; display: none;">
+            <span id="ko-text-2"></span>
+        </div>
+        
+        <img src="boneka-ko.png" class="img-mascot" id="ko-mascot" style="animation: none;">
+        
+        <div class="choice-container" id="interogasi-btn" style="animation: pulse 1.5s infinite;">
+            <button class="btn" onclick="surrender()">gimana? udah tepar gitu, masih mau lanjut gw pukul gak nih?!</button>
+        </div>
+        
+        <div class="choice-container" id="ending-btn" style="display: none; margin-top: 20px;">
+            <button class="btn btn-alt" onclick="location.reload()">main lagi yuk!</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let audioCtx;
+    function playRpgBeep() {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square'; osc.frequency.setValueAtTime(400 + Math.random() * 100, audioCtx.currentTime); 
+        gain.gain.setValueAtTime(0.02, audioCtx.currentTime); 
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.03); osc.stop(audioCtx.currentTime + 0.03);
+    }
+
+    const bgmGame = new Audio('lagu-game.mp3'); bgmGame.loop = true;
+    const sfxBerantem = new Audio('suara-berantem.mp3');
+    const sfxSlap = new Audio('suara-slap.mp3');
+    const sfxJump = new Audio('https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg');
+    const sfxWin = new Audio('https://actions.google.com/sounds/v1/cartoon/trumpet_success.ogg');
+    const sfxLose = new Audio('https://actions.google.com/sounds/v1/cartoon/slip_and_slide.ogg');
+
+    let isTyping = false;
+    let isGameStarted = false;
+
+    // Fungsi ketik murni
+    function typeWriter(text, elementId, callback) {
+        if(isTyping) return; 
+        isTyping = true;
+        const el = document.getElementById(elementId);
+        el.innerHTML = '';
+        
+        let i = 0;
+        function type() {
+            if (i < text.length) {
+                el.innerHTML += text.charAt(i);
+                if (text.charAt(i) !== ' ') playRpgBeep();
+                i++;
+                setTimeout(type, 35);
+            } else {
+                isTyping = false;
+                if(callback) callback();
+            }
+        }
+        type();
+    }
+
+    function switchScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        if(document.getElementById(id)) {
+            document.getElementById(id).classList.add('active');
+        }
+    }
+
+    let currentPhase = ''; 
+
+    function initGame() {
+        if (isGameStarted) return; 
+        isGameStarted = true;
+        
+        document.getElementById('screen-start').style.display = 'none'; 
+        
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        switchScreen('screen-vn');
+        
+        setTimeout(() => {
+            const mascot = document.getElementById('vn-mascot');
+            const kado = document.getElementById('kado-item');
+            mascot.style.opacity = '1'; kado.style.opacity = '1';
+            document.getElementById('bubble-vn').classList.add('show');
+            
+            typeWriter("cieee lagi ultah, nyari kado ya?", 'vn-text', () => {
+                setTimeout(() => {
+                    mascot.src = 'boneka-smug.png';
+                    kado.style.transform = 'translate(-50px, -50px) scale(0)';
+                    kado.style.opacity = '0';
+                    sfxJump.play(); 
+                    
+                    typeWriter("eitsss, mending aku ambil buat aku aja, WLEEEE", 'vn-text', () => {
+                        document.getElementById('vn-choices').innerHTML = `
+                            <button class="btn" onclick="nextVN('balikin')">heyy! balikin ga kado aku?!</button>
+                            <button class="btn btn-alt" onclick="nextVN('siapa')">tunggu.. kamu makhluk apaan sih?!</button>
+                        `;
+                        document.getElementById('vn-choices').classList.add('show');
+                    });
+                }, 1500); 
+            });
+        }, 500);
+    }
+
+    let vnStep = 0;
+    function nextVN(choice) {
+        if(isTyping) return; 
+        
+        document.getElementById('vn-choices').classList.remove('show');
+        document.getElementById('vn-choices').innerHTML = ''; 
+        
+        const mascot = document.getElementById('vn-mascot');
+        let newText = "";
+        
+        if (vnStep === 0) {
+            if (choice === 'balikin') {
+                mascot.src = 'boneka-smug.png';
+                newText = "gamau ah, masa iya aku segampang itu nurut";
+            } else {
+                mascot.src = 'boneka-marah.png';
+                mascot.style.transform = "scale(1.1)"; 
+                newText = "GA SOPANNNNN! aku adalah pencuri kado paling ngeselin sedunia! jangan harap kamu bisa dapetin kadonya kalo aku udah ambil!";
+            }
+            setTimeout(() => {
+                typeWriter(newText, 'vn-text', () => {
+                    mascot.style.transform = "none"; 
+                    const choices = document.getElementById('vn-choices');
+                    choices.innerHTML = `<button class="btn" onclick="nextVN('marah')">WEH ngajak ribut ni makhluk</button>
+                                         <button class="btn btn-alt" onclick="nextVN('mohon')">pliss balikin, itu kado ultah aku!</button>`;
+                    choices.classList.add('show');
+                });
+            }, 300);
+            vnStep++;
+        } else if (vnStep === 1) {
+            mascot.src = 'boneka-ngeledek.png'; 
+            if (choice === 'marah') newText = "wleee ga takut! kejar dan tangkep aku dulu sini kalo emang berani!";
+            else newText = "gak peduli! kamu harus bisa tangkep aku dulu kalo emang bisa!";
+            setTimeout(() => {
+                typeWriter(newText, 'vn-text', () => {
+                    const choices = document.getElementById('vn-choices');
+                    choices.innerHTML = `<button class="btn" onclick="bonekaKaburIntro()">GAS KEJAR BONEKANYA!</button>`;
+                    choices.classList.add('show');
+                });
+            }, 200);
+        }
+    }
+
+    function bonekaKaburIntro() {
+        if(isTyping) return;
+        document.getElementById('vn-choices').classList.remove('show');
+        const mascot = document.getElementById('vn-mascot');
+        
+        mascot.src = 'boneka-smug-terbang.png';
+        mascot.style.transition = 'transform 0.6s ease-in, opacity 0.6s';
+        mascot.style.transform = 'translateY(-600px)';
+        mascot.style.opacity = '0';
+        sfxJump.play();
+        
+        setTimeout(() => { startClimbGame(); }, 800);
+    }
+
+    // ========= LOGIKA GAME MANJAT =========
+    let climbStep = 0;
+    let autoClimbing = false;
+    const climbMaxSteps = 20; 
+    const bellyStep = 8;
+    const stepHeight = 100; 
+    const climbPath = ['left', 'right', 'right', 'left', 'left', 'right', 'left', 'right', 'right', 'left', 'left', 'right', 'left', 'left', 'right', 'right', 'left', 'right', 'left', 'right', 'left'];
+
+    function initClimbWorld() {
+        const pc = document.getElementById('platforms-container');
+        pc.innerHTML = '';
+        
+        for(let i=0; i<climbMaxSteps; i++) {
+            let plat = document.createElement('div');
+            plat.className = 'platform';
+            if(climbPath[i] === 'left') plat.style.left = '25px';
+            else plat.style.right = '25px';
+            plat.style.bottom = (100 + (i * stepHeight)) + 'px'; 
+            pc.appendChild(plat);
+        }
+
+        document.getElementById('roof-platform').style.bottom = (100 + (climbMaxSteps * stepHeight)) + 'px';
+
+        let m = document.getElementById('world-mascot');
+        m.style.bottom = (115 + (climbMaxSteps * stepHeight)) + 'px';
+        m.style.left = 'calc(100% - 110px)';
+        m.style.backgroundImage = "url('boneka-smug.png')";
+        m.style.display = 'block';
+
+        let b = document.getElementById('world-belly');
+        b.style.bottom = (115 + (bellyStep * stepHeight)) + 'px';
+        b.style.left = (climbPath[bellyStep] === 'left') ? '35px' : 'calc(100% - 115px)';
+        b.style.display = 'block';
+
+        document.getElementById('game-world').style.transform = `translateY(0px)`;
+        document.getElementById('game-world').style.transition = `none`; 
+
+        let p = document.getElementById('climb-player');
+        p.style.bottom = '115px'; 
+        p.style.left = '25px'; 
+        p.style.transform = 'scaleX(1)';
+        p.style.backgroundImage = "url('cewe-berdiri.png')";
+        p.style.transition = "none"; 
+    }
+
+    function startClimbGame() {
+        currentPhase = 'climb';
+        climbStep = 0;
+        autoClimbing = false;
+        
+        switchScreen('screen-climb');
+        document.getElementById('screen-climb').style.display = 'block';
+        initClimbWorld();
+
+        bgmGame.currentTime = 0; 
+        bgmGame.play(); 
+
+        let dialog = document.getElementById('climb-dialog');
+        dialog.style.display = 'flex';
+        dialog.classList.add('show');
+        document.getElementById('climb-text-span').innerHTML = "TAP sisi KIRI atau KANAN layar buat manjat!<br>jangan sampe salah pijakan!";
+        
+        setTimeout(() => {
+            dialog.classList.remove('show');
+            setTimeout(() => dialog.style.display = 'none', 300);
+            
+            document.getElementById('game-world').style.transition = `transform 0.15s ease-out`; 
+            document.getElementById('climb-player').style.transition = `left 0.15s ease-out, bottom 0.5s ease-in, transform 0.5s ease-in`; 
+            
+            document.getElementById('screen-climb').addEventListener('mousedown', handleClimb);
+            document.getElementById('screen-climb').addEventListener('touchstart', handleClimb, {passive: false});
+        }, 2000);
+    }
+
+    function handleClimb(e) {
+        if (autoClimbing) return;
+        if (e && e.cancelable) e.preventDefault();
+        
+        let clickX = e.clientX || (e.touches && e.touches[0].clientX);
+        let screenHalf = window.innerWidth / 2;
+        let tappedSide = clickX < screenHalf ? 'left' : 'right';
+        let targetSide = climbPath[climbStep + 1]; 
+        let player = document.getElementById('climb-player');
+
+        if (tappedSide === targetSide) {
+            climbStep++;
+            sfxJump.currentTime = 0; sfxJump.play();
+            
+            player.classList.remove('hopping');
+            void player.offsetWidth; 
+            
+            player.style.backgroundImage = "url('cewe-lompat.png')";
+            player.style.left = targetSide === 'left' ? '25px' : 'calc(100% - 115px)';
+            player.style.transform = targetSide === 'left' ? 'scaleX(1)' : 'scaleX(-1)';
+            player.classList.add('hopping');
+            
+            document.getElementById('game-world').style.transform = `translateY(${climbStep * stepHeight}px)`;
+
+            setTimeout(() => {
+                if(!autoClimbing) { player.style.backgroundImage = "url('cewe-berdiri.png')"; }
+            }, 200); 
+
+            if (climbStep === bellyStep) triggerBellyEvent();
+            else if (climbStep === climbMaxSteps) reachRoof();
+        } else {
+            // JATOH!
+            autoClimbing = true;
+            player.classList.remove('hopping');
+            player.style.backgroundImage = "url('cewe-lompat.png')";
+            player.style.bottom = '-200px'; 
+            player.style.transform += " rotate(180deg)"; 
+            
+            sfxLose.play();
+            setTimeout(() => { gameOver("yah kok malah jatoh! perhatiin pijakannya dong!"); }, 800);
+        }
+    }
+
+    function triggerBellyEvent() {
+        autoClimbing = true;
+        let dialog = document.getElementById('climb-dialog');
+        let player = document.getElementById('climb-player');
+        let belly = document.getElementById('world-belly');
+
+        setTimeout(() => {
+            dialog.style.display = 'flex';
+            document.getElementById('climb-text-span').innerHTML = "wah ada belly! gas naik!";
+            dialog.classList.add('show');
+            sfxWin.play();
+            
+            setTimeout(() => {
+                dialog.classList.remove('show');
+                setTimeout(() => dialog.style.display = 'none', 300);
+                
+                belly.style.display = 'none'; 
+                player.classList.remove('hopping');
+                player.style.backgroundImage = "url('cewe-belly.png')";
+                
+                let autoInterval = setInterval(() => {
+                    if(climbStep < climbMaxSteps) {
+                        climbStep++;
+                        let side = climbPath[climbStep];
+                        
+                        player.style.left = side === 'left' ? '25px' : 'calc(100% - 115px)';
+                        player.style.transform = side === 'left' ? 'scaleX(1)' : 'scaleX(-1)';
+                        
+                        player.classList.remove('hopping'); void player.offsetWidth; player.classList.add('hopping');
+                        document.getElementById('game-world').style.transform = `translateY(${climbStep * stepHeight}px)`;
+                        sfxJump.currentTime = 0; sfxJump.play();
+                    } else {
+                        clearInterval(autoInterval);
+                        reachRoof();
+                    }
+                }, 250); 
+            }, 1000); 
+        }, 200); 
+    }
+
+    function reachRoof() {
+        autoClimbing = true;
+        let dialog = document.getElementById('climb-dialog');
+        let mascot = document.getElementById('world-mascot');
+        let player = document.getElementById('climb-player');
+        let belly = document.getElementById('world-belly');
+
+        player.style.backgroundImage = "url('cewe-berdiri.png')";
+        player.style.left = '35px'; 
+        player.style.transform = 'scaleX(1)';
+        
+        belly.style.bottom = (115 + (climbMaxSteps * stepHeight)) + 'px';
+        belly.style.left = '120px'; 
+        belly.style.transform = 'scaleX(-1)'; 
+        belly.style.display = 'block';
+        
+        setTimeout(() => {
+            dialog.style.display = 'flex';
+            dialog.classList.add('show');
+
+            typeWriter("boleh juga luu, tapi lu gaakan bisa ngejer gw terbang!", 'climb-text-span', () => {
+                
+                setTimeout(() => {
+                    dialog.classList.remove('show');
+                    setTimeout(() => dialog.style.display = 'none', 300);
+                    
+                    mascot.style.backgroundImage = "url('boneka-smug-terbang.png')";
+                    mascot.style.bottom = (parseInt(mascot.style.bottom) + 800) + 'px';
+                    sfxJump.play();
+                    
+                    setTimeout(() => {
+                        player.style.backgroundImage = "url('cewe-jetpack.png')";
+                        setTimeout(() => {
+                            player.style.bottom = '1000px'; 
+                            sfxJump.play();
+                            
+                            setTimeout(() => {
+                                document.getElementById('screen-climb').removeEventListener('mousedown', handleClimb);
+                                document.getElementById('screen-climb').removeEventListener('touchstart', handleClimb);
+                                document.getElementById('screen-climb').style.display = 'none';
+                                showReadyScreen(); 
+                            }, 800); 
+                        }, 600); 
+                    }, 800); 
+                }, 3000); 
+            });
+        }, 500);
+    }
+
+    // ========= FLAPPY BIRD =========
+    let flappyLoop;
+    let pipeIntervalTimer;
+    let tauntIntervalTimer;
+    let birdY = 200;
+    let velocity = 0;
+    let isFlappyPlaying = false;
+    let isCatching = false; 
+    let pipes = [];
+    let score = 0;
+    let bossHp = 100;
+    let firstHit = false;
+    const flappyMaxScore = 10; 
+
+    const tauntsText = ["kurang cepet wleee!", "mukanya jangan panik dong wkwk", "awas nabrak!", "sini tangkep kalo bisa!", "cupu ah!", "gampang banget kabur ini mah"];
+
+    function showReadyScreen() {
+        currentPhase = 'flappy';
+        switchScreen('screen-getready');
+        
+        const flappyScreen = document.getElementById('screen-game');
+        flappyScreen.style.display = 'block';
+        flappyScreen.style.pointerEvents = 'auto'; 
+        
+        clearTimeout(pipeIntervalTimer);
+        clearInterval(tauntIntervalTimer);
+        document.querySelectorAll('.pipe').forEach(p => p.remove()); 
+        pipes = [];
+        
+        isCatching = false;
+        const fbTarget = document.getElementById('target-mascot');
+        fbTarget.style.right = '20px';
+        fbTarget.style.left = 'auto';
+        fbTarget.style.top = '50%';
+        fbTarget.style.backgroundImage = "url('boneka-terbang.png')";
+        fbTarget.style.transition = 'top 0.6s ease-in-out';
+        fbTarget.style.transform = 'none';
+        fbTarget.style.display = 'block';
+        
+        document.getElementById('taunt-bubble').style.display = 'none';
+        const fbBird = document.getElementById('player-bird');
+        fbBird.style.display = 'block';
+        fbBird.style.top = '50%';
+        fbBird.style.transform = 'none';
+        document.getElementById('fight-cloud').style.display = 'none';
+        
+        const sd = document.getElementById('score-display');
+        sd.style.opacity = '1';
+        sd.innerText = '0';
+        
+        setTimeout(() => { startFlappyGame(); }, 1500);
+    }
+
+    function startFlappyGame() {
+        document.getElementById('screen-getready').classList.remove('active'); 
+        
+        const flappyScreen = document.getElementById('screen-game');
+        birdY = flappyScreen.clientHeight / 2; 
+        velocity = 0; score = 0; isFlappyPlaying = true;
+        
+        flappyScreen.addEventListener('touchstart', jumpFlappy, {passive: false});
+        flappyScreen.addEventListener('mousedown', jumpFlappy);
+        
+        clearInterval(flappyLoop);
+        clearTimeout(pipeIntervalTimer); 
+        clearInterval(tauntIntervalTimer);
+        
+        flappyLoop = setInterval(updateFlappy, 20);
+        spawnPipe();
+        
+        tauntIntervalTimer = setInterval(() => {
+            if(!isFlappyPlaying || isCatching) return;
+            const fbTarget = document.getElementById('target-mascot');
+            const tb = document.getElementById('taunt-bubble');
+            fbTarget.style.backgroundImage = "url('boneka-smug-terbang.png')";
+            tb.innerText = tauntsText[Math.floor(Math.random() * tauntsText.length)];
+            tb.style.display = 'block';
+            
+            setTimeout(() => { 
+                tb.style.display = 'none'; 
+                if(!isCatching) fbTarget.style.backgroundImage = "url('boneka-terbang.png')";
+            }, 1200);
+        }, 3000);
+    }
+
+    function jumpFlappy(e) {
+        if(!isFlappyPlaying) return;
+        if(e && e.cancelable) e.preventDefault();
+        velocity = -6; 
+        const fbBird = document.getElementById('player-bird');
+        fbBird.style.transform = "rotate(-15deg)";
+        sfxJump.currentTime = 0; sfxJump.play();
+    }
+
+    function updateFlappy() {
+        const flappyScreen = document.getElementById('screen-game');
+        const fbBird = document.getElementById('player-bird');
+        const fbTarget = document.getElementById('target-mascot');
+        
+        velocity += 0.35; 
+        birdY += velocity;
+        fbBird.style.top = birdY + 'px';
+
+        if(velocity > 2) fbBird.style.transform = `rotate(${Math.min(velocity * 5, 45)}deg)`;
+        if (birdY + 60 > flappyScreen.clientHeight || birdY < -20) return gameOver("yah baru segitu udah nabrak WKWKWK!");
+
+        if (score === flappyMaxScore && !isCatching) {
+            isCatching = true;
+            clearTimeout(pipeIntervalTimer); 
+            clearInterval(tauntIntervalTimer);
+            document.getElementById('taunt-bubble').style.display = 'none'; 
+            
+            fbTarget.style.backgroundImage = "url('boneka-smug-terbang.png')";
+            fbTarget.style.transition = "none";
+            
+            let targetRect = fbTarget.getBoundingClientRect();
+            let contRect = flappyScreen.getBoundingClientRect();
+            let targetLeft = targetRect.left - contRect.left;
+            let targetTop = targetRect.top - contRect.top;
+
+            fbTarget.style.right = 'auto';
+            fbTarget.style.left = targetLeft + 'px';
+            fbTarget.style.top = targetTop + 'px';
+
+            let pillar = document.createElement('div');
+            pillar.className = 'pipe pipe-bottom';
+            pillar.style.left = targetLeft + 'px';
+            let pillarHeight = flappyScreen.clientHeight - targetTop - 65; 
+            pillar.style.height = Math.max(0, pillarHeight) + 'px';
+            pillar.style.bottom = '0px';
+            pillar.isSafe = true; 
+            
+            let cap = document.createElement('div'); cap.className = 'pipe-cap'; pillar.appendChild(cap);
+            flappyScreen.appendChild(pillar);
+            pipes.push(pillar);
+        }
+
+        for (let i = 0; i < pipes.length; i++) {
+            let p = pipes[i];
+            let pipeLeft = parseInt(p.style.left);
+            p.style.left = (pipeLeft - 3) + 'px';
+
+            let birdRect = fbBird.getBoundingClientRect();
+            let pipeRect = p.getBoundingClientRect();
+            
+            if (!p.isSafe && birdRect.right - 20 > pipeRect.left && birdRect.left + 20 < pipeRect.right &&
+                birdRect.bottom - 20 > pipeRect.top && birdRect.top + 20 < pipeRect.bottom) {
+                return gameOver("yah baru segitu udah nabrak WKWKWK!");
+            }
+
+            if (!p.passed && pipeLeft < 50 && !p.isSafe) { 
+                p.passed = true;
+                if (p.classList.contains('pipe-top')) {
+                    score++;
+                    const sd = document.getElementById('score-display');
+                    sd.innerText = score;
+                    sd.style.transform = "translateX(-50%) scale(1.5)";
+                    setTimeout(() => sd.style.transform = "translateX(-50%) scale(1)", 200);
+                }
+            }
+
+            if (pipeLeft < -80) { p.remove(); pipes.splice(i, 1); i--; }
+        }
+
+        if (isCatching) {
+            let mascotLeft = parseFloat(fbTarget.style.left);
+            fbTarget.style.left = (mascotLeft - 3) + 'px';
+
+            let birdRect = fbBird.getBoundingClientRect();
+            let mascotRect = fbTarget.getBoundingClientRect();
+
+            if (birdRect.right - 20 > mascotRect.left && birdRect.left + 20 < mascotRect.right &&
+                birdRect.bottom - 20 > mascotRect.top && birdRect.top + 20 < mascotRect.bottom) {
+                
+                isFlappyPlaying = false;
+                clearInterval(flappyLoop);
+                
+                bgmGame.pause(); 
+                sfxBerantem.play(); 
+                
+                fbBird.style.display = 'none';
+                fbTarget.style.display = 'none';
+                
+                let contRect = flappyScreen.getBoundingClientRect();
+                const fc = document.getElementById('fight-cloud');
+                fc.style.left = (mascotRect.left - contRect.left - 30) + 'px';
+                fc.style.top = (mascotRect.top - contRect.top - 30) + 'px';
+                fc.style.display = 'block';
+                
+                setTimeout(() => { startBossFight(); }, 2500);
+                return;
+            }
+
+            if (mascotLeft < -100) { return gameOver("eitsss kelewatannn HAHAHA"); }
+        }
+    }
+
+    function spawnPipe() {
+        if (!isFlappyPlaying || isCatching) return; 
+        const flappyScreen = document.getElementById('screen-game');
+        let gap = 240; 
+        let minHeight = 50;
+        let maxHeight = flappyScreen.clientHeight - gap - minHeight;
+        let topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1) + minHeight);
+        
+        function createPipe(type, height, topPos, bottomPos) {
+            let pipe = document.createElement('div');
+            pipe.className = `pipe ${type}`;
+            pipe.style.left = flappyScreen.clientWidth + 'px';
+            pipe.style.height = height + 'px';
+            if(topPos !== null) pipe.style.top = topPos;
+            if(bottomPos !== null) pipe.style.bottom = bottomPos;
+            
+            let cap = document.createElement('div'); cap.className = 'pipe-cap'; pipe.appendChild(cap);
+            return pipe;
+        }
+
+        let pipeTop = createPipe('pipe-top', topHeight, '0px', null);
+        let pipeBottom = createPipe('pipe-bottom', flappyScreen.clientHeight - topHeight - gap, null, '0px');
+        pipeTop.passed = false; pipeBottom.passed = false;
+
+        flappyScreen.appendChild(pipeTop);
+        flappyScreen.appendChild(pipeBottom);
+        pipes.push(pipeTop, pipeBottom);
+
+        document.getElementById('target-mascot').style.top = (topHeight + (gap / 2) - 35) + 'px'; 
+        pipeIntervalTimer = setTimeout(spawnPipe, 1800); 
+    }
+
+    // ========= FUNGSI GLOBAL =========
+    function retryGame() {
+        bgmGame.currentTime = 0; 
+        bgmGame.play(); // FIX LAGU MATI
+
+        if(currentPhase === 'climb') {
+            document.getElementById('climb-player').style.transition = "none";
+            startClimbGame();
+        } else {
+            showReadyScreen();
+        }
+    }
+
+    function gameOver(reasonText) {
+        if(currentPhase === 'climb') {
+            autoClimbing = true;
+            document.getElementById('screen-climb').removeEventListener('mousedown', handleClimb);
+            document.getElementById('screen-climb').removeEventListener('touchstart', handleClimb);
+        } else {
+            isFlappyPlaying = false; 
+            clearInterval(flappyLoop);
+            clearTimeout(pipeIntervalTimer);
+            clearInterval(tauntIntervalTimer);
+            document.getElementById('taunt-bubble').style.display = 'none';
+            document.getElementById('screen-game').removeEventListener('touchstart', jumpFlappy); 
+            document.getElementById('screen-game').removeEventListener('mousedown', jumpFlappy);
+            
+            document.getElementById('screen-game').style.pointerEvents = 'none';
+        }
+        
+        bgmGame.pause(); 
+        sfxLose.play(); 
+        document.getElementById('score-display').style.opacity = '0';
+        document.getElementById('over-text').innerText = reasonText;
+        switchScreen('screen-gameover');
+    }
+
+    function startBossFight() {
+        isFlappyPlaying = false; bossHp = 100; firstHit = false;
+        document.getElementById('fight-cloud').style.display = 'none'; 
+        document.getElementById('screen-game').style.display = 'none';
+        document.getElementById('health-bar').style.width = '100%';
+        document.getElementById('boss-mascot').style.backgroundImage = "url('boneka-ngeledek.png')";
+        
+        document.getElementById('screen-game').removeEventListener('touchstart', jumpFlappy); 
+        document.getElementById('screen-game').removeEventListener('mousedown', jumpFlappy);
+        
+        switchScreen('screen-boss');
+    }
+
+    function hitBoss() {
+        if(bossHp <= 0) return;
+        bossHp -= 8; if(bossHp < 0) bossHp = 0;
+        document.getElementById('health-bar').style.width = bossHp + '%';
+        
+        sfxSlap.currentTime = 0; sfxSlap.play();
+        let bossEl = document.getElementById('boss-mascot');
+        
+        if (!firstHit) firstHit = true;
+        let baseBg = "url('boneka-sakit.png')";
+        if (bossHp <= 50) baseBg = "url('boneka-sakit2.png')";
+        
+        bossEl.style.filter = "brightness(0.5) sepia(1) hue-rotate(-50deg) saturate(5)";
+        bossEl.style.transform = "scale(0.9) translate(5px, 5px)";
+        
+        setTimeout(() => {
+            bossEl.style.filter = "none";
+            bossEl.style.transform = "none";
+            if(bossHp > 0) bossEl.style.backgroundImage = baseBg;
+        }, 150);
+
+        if(bossHp <= 0) {
+            bossEl.style.backgroundImage = "url('boneka-ko.png')";
+            setTimeout(() => { 
+                sfxWin.play(); 
+                switchScreen('screen-ko'); 
+                document.getElementById('ko-mascot').src = 'boneka-ko.png';
+                
+                document.getElementById('interogasi-btn').classList.add('show');
+            }, 600);
+        }
+    }
+
+    // ========= FUNGSI NYERAH FIX =========
+    function surrender() {
+        if(isTyping) return; 
+        document.getElementById('interogasi-btn').style.display = 'none';
+        document.getElementById('ko-mascot').src = 'boneka-nyerah.png'; 
+        
+        let part1 = "ampunnn kak ampunnn! iya iya aku ngaku kalah! tolong jangan pukul lagiii 😭... kadonya tadi aku sembunyiin di belakang sofa ruang tv! sana ambil aja kak";
+        let part2 = "dan selamat ulang tahun ya, maaf aku isengin tadi";
+        
+        // ngetik di bubble atas dulu
+        typeWriter(part1, 'ko-text-1', () => {
+            setTimeout(() => {
+                // animasi buntut komik ilang
+                document.getElementById('bubble-ko-1').classList.add('no-tail');
+                
+                // munculin bubble bawah buat ngetik ultah
+                let bubble2 = document.getElementById('bubble-ko-2');
+                bubble2.style.display = 'flex';
+                
+                setTimeout(() => {
+                    bubble2.classList.add('show');
+                    typeWriter(part2, 'ko-text-2', () => {
+                        sfxWin.play();
+                        setTimeout(() => {
+                            document.getElementById('ending-btn').style.display = 'flex';
+                        }, 500);
+                    }); 
+                }, 50);
+            }, 1000); 
+        });
+    }
+</script>
+
+</body>
+</html>
