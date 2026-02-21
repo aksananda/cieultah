@@ -2,24 +2,41 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>misi nangkep kado!</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
 
-        body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
+        /* FIX TINGGI IPHONE (WEBKIT FILL) */
+        html {
+            height: -webkit-fill-available;
+        }
+
+        body {
+            margin: 0; padding: 0; width: 100%; 
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             font-family: 'Fredoka One', cursive; overflow: hidden;
             touch-action: manipulation; user-select: none;
             -webkit-user-select: none;
         }
 
+        /* DIBIKIN POSISI FIXED BIAR GA BISA DI-SCROLL SAMA SEKALI */
         #game-container {
-            position: relative; width: 100%; max-width: 420px; height: 100%;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            width: 100%; max-width: 100%; height: 100%;
             margin: 0 auto; background: url('https://www.transparenttextures.com/patterns/cubes.png'), linear-gradient(to bottom, #87CEEB, #e0f6ff);
             overflow: hidden; box-shadow: 0 0 30px rgba(0,0,0,0.8);
-            border-left: 4px solid #fff; border-right: 4px solid #fff;
+        }
+
+        /* kalo dibuka di PC/Laptop baru dikasih frame pinggiran */
+        @media (min-width: 600px) {
+            #game-container {
+                max-width: 420px;
+                position: relative;
+                border-left: 4px solid #fff; border-right: 4px solid #fff;
+            }
         }
 
         .screen {
@@ -43,15 +60,14 @@
         .speech-bubble {
             position: relative; background: #fff; border-radius: 20px; padding: 20px; border: 4px solid #2c3e50; font-size: 15px;
             width: 85%; color: #2c3e50; box-shadow: 0px 8px 0px rgba(0,0,0,0.1); margin-bottom: 40px; line-height: 1.4; min-height: 60px;
-            display: flex; align-items: center; justify-content: center; transform: scale(0); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; transform: scale(0); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         .speech-bubble.show { transform: scale(1); }
         .speech-bubble:after { content: ''; position: absolute; bottom: -20px; left: 50%; width: 0; height: 0; border: 20px solid transparent; border-top-color: #2c3e50; border-bottom: 0; margin-left: -20px; }
         
-        /* class biar buntut bubble ilang buat tumpuk 2 textbox */
         .speech-bubble.no-tail:after { display: none; }
 
-        .choice-container { display: flex; flex-direction: column; gap: 12px; width: 85%; opacity: 0; pointer-events: none; transition: opacity 0.5s ease; z-index: 1000; position: relative; }
+        .choice-container { display: flex; flex-direction: column; gap: 12px; width: 85%; opacity: 0; pointer-events: none; transition: opacity 0.5s ease; position: relative; z-index: 1000;}
         .choice-container.show { opacity: 1; pointer-events: auto; }
         .btn { background: #ff6b6b; border: 3px solid #fff; padding: 15px; border-radius: 50px; color: white; font-family: inherit; font-size: 14px; cursor: pointer; box-shadow: 0px 6px 0px #c0392b; transition: transform 0.1s, box-shadow 0.1s; z-index: 1000;}
         .btn:active { transform: translateY(6px); box-shadow: 0px 0px 0px #c0392b; }
@@ -218,7 +234,6 @@
     let isTyping = false;
     let isGameStarted = false;
 
-    // Fungsi ketik murni
     function typeWriter(text, elementId, callback) {
         if(isTyping) return; 
         isTyping = true;
@@ -779,7 +794,7 @@
     // ========= FUNGSI GLOBAL =========
     function retryGame() {
         bgmGame.currentTime = 0; 
-        bgmGame.play(); // FIX LAGU MATI
+        bgmGame.play(); 
 
         if(currentPhase === 'climb') {
             document.getElementById('climb-player').style.transition = "none";
@@ -859,7 +874,7 @@
         }
     }
 
-    // ========= FUNGSI NYERAH FIX =========
+    // ========= FUNGSI NYERAH DUA BUBBLE =========
     function surrender() {
         if(isTyping) return; 
         document.getElementById('interogasi-btn').style.display = 'none';
@@ -868,13 +883,10 @@
         let part1 = "ampunnn kak ampunnn! iya iya aku ngaku kalah! tolong jangan pukul lagiii 😭... kadonya tadi aku sembunyiin di belakang sofa ruang tv! sana ambil aja kak";
         let part2 = "dan selamat ulang tahun ya, maaf aku isengin tadi";
         
-        // ngetik di bubble atas dulu
         typeWriter(part1, 'ko-text-1', () => {
             setTimeout(() => {
-                // animasi buntut komik ilang
                 document.getElementById('bubble-ko-1').classList.add('no-tail');
                 
-                // munculin bubble bawah buat ngetik ultah
                 let bubble2 = document.getElementById('bubble-ko-2');
                 bubble2.style.display = 'flex';
                 
