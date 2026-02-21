@@ -174,7 +174,7 @@
 
     <div id="screen-getready" class="screen" style="z-index: 9999;">
         <div class="speech-bubble show" style="font-size: 24px; color: #e74c3c;">siap - siap!</div>
-        <p style="color: white; font-size: 12px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 10px;">TAP LAYAR BUAT TERBANG<br>KEJAR BONEKANYA!</p>
+        <p style="color: white; font-size: 12px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 10px;">TAP LAYAR BUAT TERBANG<br>KEJAR PENCURI!</p>
     </div>
 
     <div id="screen-gameover" class="screen">
@@ -185,9 +185,9 @@
 
     <div id="screen-boss" class="screen" style="background: rgba(0,0,0,0.85);">
         <div class="speech-bubble show" id="bubble-boss" style="border-color: #e74c3c; color: #e74c3c;"><span id="boss-text">aduh segala ketangkep, mau kamu apain juga gabakal aku balikin kadonya</span></div>
-        <div id="health-bar-bg"><div id="health-bar"></div><div class="health-text">HP BONEKA</div></div>
+        <div id="health-bar-bg"><div id="health-bar"></div><div class="health-text">sisa darah pencuri</div></div>
         <div id="boss-mascot" onclick="hitBoss()"></div>
-        <div style="margin-top:25px; font-size:14px; color:#ffcc00; animation: pulse 1s infinite;">👇 tap untuk gebuk sipencuri kado 👊 👇</div>
+        <div style="margin-top:25px; font-size:14px; color:#ffcc00; animation: pulse 1s infinite;">tap untuk gebuk si pencuri kado 👊</div>
     </div>
 
     <div id="screen-ko" class="screen" style="background: rgba(0,0,0,0.95);">
@@ -335,7 +335,7 @@
             setTimeout(() => {
                 typeWriter(newText, 'vn-text', () => {
                     const choices = document.getElementById('vn-choices');
-                    choices.innerHTML = `<button class="btn" onclick="bonekaKaburIntro()">GAS KEJAR BONEKANYA!</button>`;
+                    choices.innerHTML = `<button class="btn" onclick="bonekaKaburIntro()">GAS KEJAR PENCURINYA!</button>`;
                     choices.classList.add('show');
                 });
             }, 200);
@@ -576,7 +576,7 @@
     let firstHit = false;
     const flappyMaxScore = 10; 
 
-    const tauntsText = ["kurang cepet wleee!", "mukanya jangan panik dong wkwk", "awas nabrak!", "sini tangkep kalo bisa!", "cupu ah!", "gampang banget kabur ini mah"];
+    const tauntsText = ["kurang cepet wleee!", "jangan panik dong wkwk", "awas nabrak!", "sini tangkep kalo bisa!", "cupu ah!", "gampang banget kabur ini mah"];
 
     function showReadyScreen() {
         currentPhase = 'flappy';
@@ -881,7 +881,7 @@
         document.getElementById('ko-mascot').src = 'boneka-nyerah.png'; 
         
         let part1 = "ampunnn kak ampunnn! iya iya aku ngaku kalah! tolong jangan pukul lagiii 😭... kadonya tadi aku sembunyiin di belakang sofa ruang tv! sana ambil aja kak";
-        let part2 = "dan selamat ulang tahun ya, maaf aku isengin tadi";
+        let part2 = "dan selamat ulang tahun ya, maaf aku isengin tadi, Aksa yang nyuruh aku";
         
         typeWriter(part1, 'ko-text-1', () => {
             setTimeout(() => {
@@ -906,3 +906,4 @@
 
 </body>
 </html>
+
